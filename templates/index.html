@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tesseract</title>
+    <script type="text/javascript"
+            src="http://192.168.100.92/static/js/jquery-3.4.1.js"></script>
+</head>
+<body>
+    <h1>Tesseract Telegram Bot</h1>
+    <p>Welcome</p>
+    <p>That is <a href="http://t.me/tesseract_ibot">@tesseract_ibot</a> for notify about network cases</p>
+    <p>
+        To get access to telegram notify you should send POST request at
+        <br><b>cup.ironnet.info/tesseract/api/bot_notify</b>
+        <br>format: requests.post(json={'header': groupname, 'text': sample text}, verify=False)
+    </p>
+    <p>
+        Also you can send file
+        <br><b>cup.ironnet.info/tesseract/api/bot_send_file</b>
+        <br>format: requests.post(url, data={'header': groupname}, files={'file': open(filename, 'rb')}, verify=False)
+    </p>
+    <div>
+        List:
+    </div>
+    <div id="groups"></div>
+    <pre>
+        <div id="list"></div>
+    </pre>
+</body>
+</html>
+<script>
+$(document).ready(function() {
+    let list = document.getElementById('list');
+    let groups = document.getElementById('groups');
+    refresh_list();
+    setInterval(refresh_list, 60000);
+
+    function refresh_list() {
+        fetch('api/get_list', {
+            method: 'GET',
+        })
+            .then(response => response.json())
+            .then(data => {
+                list.innerText = data['subs'];
+                groups.innerHTML = '';
+                data['groups'].forEach(function (item) {
+                    groups.innerHTML += ' - ' + item + '<br>';
+                });
+            })
+            .catch(error => {
+                console.log(error);
+            });
+    }
+});
+</script>
