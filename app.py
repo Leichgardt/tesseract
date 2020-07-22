@@ -52,18 +52,17 @@ def bot_send_file():
         if request.method == 'POST':
             if 'multipart/form-data' in request.content_type:
                 header = request.form.get('header', '')
-                if header == '':
-                    return {'response': 0}
-                file = request.files['file']
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(filepath)
-                    print(file, filename, filepath, sep='\n - ')
-                    bot.send_file(header, open(filepath, 'rb'))
-                    os.remove(filepath)
-                    return {'response': 1}
-                return {'response': 0}
+                if header != '':
+                    f = request.files['file']
+                    if f and allowed_file(f.filename):
+                        filename = secure_filename(f.filename)
+                        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                        f.save(filepath)
+                        print(f, filename, filepath, sep='\n - ')
+                        bot.send_file(header, open(filepath, 'rb'))
+                        os.remove(filepath)
+                        return {'response': 1}
+            return {'response': 0}
     except Exception as e:
         print('[bot_send_file]:', e)
         return {'response': -1}
