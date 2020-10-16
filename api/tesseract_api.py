@@ -1,6 +1,7 @@
 import os
 import sys
 from threading import Thread
+from telegram.error import TimedOut
 from multiprocessing import Queue
 
 tesseract_path = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -32,13 +33,15 @@ class TesseractAPI(TesseractCore):
 
     def send_notify(self, header, text):
         for chat_id in self.subs[header]:
-            self.bot.send_message(chat_id=chat_id, text=text, timeout=60)
+            try:
+                self.bot.send_message(chat_id=chat_id, text=text, timeout=10)
+            except TimedOut:
+                self.bot.send_message(chat_id=chat_id, text=text, timeout=60)
 
     def send_file(self, header, filepath):
         for chat_id in self.subs[header]:
-            # cmd = 'curl -v -F "chat_id={}" -F document=@{} https://api.telegram.org/bot{}/sendDocument'.format(
-            #     chat_id, open(filepath, 'rb'), self.token
-            # )
-            # subprocess.Popen(cmd, shell=True)
-            self.bot.send_document(chat_id=chat_id, document=open(filepath, 'rb'))
+            try:
+                self.bot.send_document(chat_id=chat_id, document=open(filepath, 'rb'), timeout=15)
+            except TimedOut:
+                self.bot.send_document(chat_id=chat_id, document=open(filepath, 'rb'), timeout=60)
             os.remove(filepath)

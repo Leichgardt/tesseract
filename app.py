@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import Flask, render_template, request
 import os
+import traceback
 from werkzeug.utils import secure_filename
 from api.tesseract_bot import TesseractBot
 
@@ -16,9 +17,13 @@ def request_handler(request_func):
     @wraps(request_func)
     def super_wrapper():
         try:
+            print('Request received. Processing...')
             return request_func(), 200
         except Exception as e:
-            print('Exception:', e)
+            print('[{}]: {}'.format(request_func.__name__, e))
+            text = 'Tesseract error:\n{}\n\n{}'.format(e, traceback.format_exc())
+            data = {'command': 'sendMessage', 'chat': 'test', 'text': text}
+            bot.queue.put(data)
             return {'response': -999, 'error': e.__str__()}, 500
     return super_wrapper
 
@@ -38,41 +43,33 @@ def get_list():
 
 
 @app.route('/api/bot_notify', methods=['POST'])
+@request_handler
 def bot_notify():
-    print('Request received. Processing...')
-    try:
-        if request.method == 'POST':
-            json_data = request.get_json()
-            header = json_data['header'] or json_data['chat']
-            text = json_data['text']
-            data = {'command': 'sendMessage', 'chat': header, 'text': text}
-            bot.queue.put(data)
-            return {'response': 1}
-    except Exception as e:
-        print('[bot_notify]:', e)
-        return {'response': -1}
+    if request.method == 'POST':
+        json_data = request.get_json()
+        header = json_data['header'] or json_data['chat']
+        text = json_data['text']
+        data = {'command': 'sendMessage', 'chat': header, 'text': text}
+        bot.queue.put(data)
+        return {'response': 1}
 
 
 @app.route('/api/bot_send_file', methods=['POST'])
+@request_handler
 def bot_send_file():
-    print('Request received. Processing...')
-    try:
-        if request.method == 'POST':
-            if 'multipart/form-data' in request.content_type:
-                header = request.form.get('header', '')
-                if header != '':
-                    f = request.files['file']
+    if request.method == 'POST':
+        if 'multipart/form-data' in request.content_type:
+            header = request.form.get('header', '')
+            if header != '':
+                for f in request.files:
                     filename = secure_filename(f.filename)
                     filepath = project_dir + '/' + os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     f.save(filepath)
                     print(f, filename, filepath, sep='\n - ')
                     data = {'command': 'sendDocument', 'chat': header, 'filepath': filepath}
                     bot.queue.put(data)
-                    return {'response': 1}
-            return {'response': 0}
-    except Exception as e:
-        print('[bot_send_file]:', e)
-        return {'response': -1}
+                return {'response': 1}
+        return {'response': 0}
 
 
 if __name__ == '__main__':
