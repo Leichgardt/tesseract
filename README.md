@@ -17,8 +17,3 @@ Run by flask
 ```sh
 $ flask run
 ```
-Or by wsgi
-```sh
-$ uwsgi --ini uwsgi.ini
-```
-Also see uwsgi.ini

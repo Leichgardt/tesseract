@@ -1,19 +1,26 @@
-import os
+from functools import wraps
 from flask import Flask, render_template, request
+import os
 from werkzeug.utils import secure_filename
 from api.tesseract_bot import TesseractBot
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'json', 'rar', 'zip', 'tag', 'gz', '7z'}
+project_dir = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 bot = TesseractBot()
 
 
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+def request_handler(request_func):
+    @wraps(request_func)
+    def super_wrapper():
+        try:
+            return request_func(), 200
+        except Exception as e:
+            print('Exception:', e)
+            return {'response': -999, 'error': e.__str__()}, 500
+    return super_wrapper
 
 
 @app.route('/')
@@ -36,9 +43,10 @@ def bot_notify():
     try:
         if request.method == 'POST':
             json_data = request.get_json()
-            header = json_data['header']
+            header = json_data['header'] or json_data['chat']
             text = json_data['text']
-            bot.send_notify(header, text)
+            data = {'command': 'sendMessage', 'chat': header, 'text': text}
+            bot.queue.put(data)
             return {'response': 1}
     except Exception as e:
         print('[bot_notify]:', e)
@@ -54,14 +62,13 @@ def bot_send_file():
                 header = request.form.get('header', '')
                 if header != '':
                     f = request.files['file']
-                    if f and allowed_file(f.filename):
-                        filename = secure_filename(f.filename)
-                        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                        f.save(filepath)
-                        print(f, filename, filepath, sep='\n - ')
-                        bot.send_file(header, open(filepath, 'rb'))
-                        os.remove(filepath)
-                        return {'response': 1}
+                    filename = secure_filename(f.filename)
+                    filepath = project_dir + '/' + os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    f.save(filepath)
+                    print(f, filename, filepath, sep='\n - ')
+                    data = {'command': 'sendDocument', 'chat': header, 'filepath': filepath}
+                    bot.queue.put(data)
+                    return {'response': 1}
             return {'response': 0}
     except Exception as e:
         print('[bot_send_file]:', e)

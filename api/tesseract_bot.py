@@ -1,32 +1,19 @@
 import os
 import sys
-import json
-import telegram
-from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, Defaults
+from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
 tesseract_path = os.path.dirname(os.path.abspath(__file__)) + '/'
 sys.path.append(os.path.abspath(tesseract_path + '../'))
 
-from api.config import Configer
+from api.tesseract_api import TesseractAPI
 
 
-class TesseractBot:
+class TesseractBot(TesseractAPI):
     """Telegram Bot"""
     def __init__(self):
-        self.last_ari_msg = 0
-        self.last_rev_msg = 0
-        self.subs = {'all': []}
+        super().__init__()
 
-        if os.path.exists(tesseract_path + 'subs.json'):
-            self._load_subs()
-
-        cfg = Configer().upload(module='Tesseract')
-        token = cfg('token', '')
-
-        self.bot = telegram.Bot(token=token)
-        self.bot.getUpdates(timeout=60)
-
-        self.updater = Updater(token=token, use_context=True)
+        self.updater = Updater(token=self.token, use_context=True)
         dispatcher = self.updater.dispatcher
 
         start_handler = CommandHandler('start', self._start)
@@ -35,13 +22,13 @@ class TesseractBot:
         help_handler = CommandHandler('help', self._help)
         dispatcher.add_handler(help_handler)
 
-        iam_handler = CommandHandler('help', self._iam)
+        iam_handler = CommandHandler('iam', self._iam)
         dispatcher.add_handler(iam_handler)
 
         sub_handler = CommandHandler('subscribe', self._subscribe)
         dispatcher.add_handler(sub_handler)
 
-        unsub_handler = CommandHandler('unsubscribe', self._subscribe)
+        unsub_handler = CommandHandler('unsubscribe', self._unsubscribe)
         dispatcher.add_handler(unsub_handler)
 
         groups_handler = CommandHandler('groups', self._groups)
@@ -57,38 +44,6 @@ class TesseractBot:
         dispatcher.add_handler(unknown_handler)
 
         self.updater.start_polling()
-
-    def subs_output(self):
-        return json.dumps(self.subs, indent=8, sort_keys=True)
-
-    def groups_output(self):
-        return list(self.subs.keys())
-
-    def _load_subs(self):
-        self.subs = json.load(open(tesseract_path + 'subs.json', 'r'))
-
-    def _save_subs(self):
-        json.dump(self.subs, open(tesseract_path + 'subs.json', 'w'))
-
-    def send_notify(self, header, text):
-        for chat_id in self.subs[header]:
-            count = 0
-            while True:
-                try:
-                    response = self.bot.send_message(chat_id=chat_id, text=text, timeout=60)
-                    if isinstance(response, telegram.message.Message):
-                        break
-                except telegram.error.TimedOut:
-                    count += 1
-                    if count > 5:
-                        break
-
-    def send_file(self, header, document):
-        for chat_id in self.subs[header]:
-            while True:
-                response = self.bot.send_document(chat_id=chat_id, document=document, timeout=60)
-                if isinstance(response, telegram.message.Message):
-                    break
 
     def _start(self, update, context):
         text = "Tesseract are greetings you.\n/subscribe\n/help"

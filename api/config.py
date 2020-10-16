@@ -63,7 +63,7 @@ class Configer:
         print("Uploading configuration for {} module from {}".format(config_module.replace('\n', ''), config_url))
         self.config_list = {}
         with requests.get(config_url, auth=(self.user, self.__passwd)) as r:
-            if r.status_code is not 200:
+            if r.status_code != 200:
                 print(f"Server doesn't respond.\n{config_url}\nPrevious configurations are not deleted.")
                 return self
             r.encoding = r.apparent_encoding
@@ -80,7 +80,7 @@ class Configer:
             for line in text[start:end]:
                 if line[0] == '#':
                     continue
-                elif line is not '\n':
+                elif line != '\n':
                     item = line.replace('\n', '').split('=')
                     if ',' in item[1]:
                         item[1] = item[1].split(',')
