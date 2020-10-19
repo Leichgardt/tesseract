@@ -9,7 +9,7 @@ tesseract_path = os.path.dirname(os.path.abspath(__file__)) + '/'
 sys.path.append(os.path.abspath(tesseract_path + '../'))
 
 from api.tesseract_core import TesseractCore
-from api.sql_queuer import SQLMaster
+from api.sql_queuer import sql_load, sql_insert, sql_delete
 
 
 class TesseractAPI(TesseractCore):
@@ -23,24 +23,22 @@ class TesseractAPI(TesseractCore):
         self.load_sql()
 
     def load_sql(self):
-        sql = SQLMaster()
-        dataset = sql.load_queue()
+        dataset = sql_load()
         print('saved queue size:', len(dataset))
         for data in dataset:
             self.queue.put(data)
 
     def _queue_master(self):
-        sql = SQLMaster()
         while True:
             data = self.queue.get()
             print('queue: data was received -', data)
-            sql.insert_queue(data)
-            thr = Thread(target=self._bot_master, args=(data,))
-            thr.daemon = True
-            thr.start()
+            sql_insert(data)
+            self._bot_master(data)
+            # thr = Thread(target=self._bot_master, args=(data,))
+            # thr.daemon = True
+            # thr.start()
 
     def _bot_master(self, data):
-        sql = SQLMaster()
         bot_cmd = eval('self.bot.' + data['command'])
         timeout = data.get('timeout', 10)
         chats = data.get('chats', self.subs[data.get('chat', 'test')])
@@ -55,12 +53,12 @@ class TesseractAPI(TesseractCore):
                 sleep(timeout // 5)
                 data.update({'chats': save_chats, 'timeout': 60})
                 self.queue.put(data)
-                sql.insert_queue(data)
+                sql_insert(data)
             except FileNotFoundError as e:
                 err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__()}
                 self.queue.put(err_data)
-                sql.insert_queue(err_data)
-        sql.delete_queue(data)
+                sql_insert(err_data)
+        sql_delete(data)
         super_cleaner(data)
 
 

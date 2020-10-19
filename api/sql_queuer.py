@@ -59,6 +59,21 @@ class SQLMaster:
             self.execute('DELETE FROM queue WHERE data=(?)', data)
 
 
+def sql_load():
+    sql = SQLMaster()
+    return sql.load_queue()
+
+
+def sql_insert(data):
+    sql = SQLMaster()
+    return sql.insert_queue(data)
+
+
+def sql_delete(data):
+    sql = SQLMaster()
+    sql.delete_queue(data)
+
+
 if __name__ == "__main__":
     sql = SQLMaster(debug=True)
     print(sql.execute('select * from queue'))
