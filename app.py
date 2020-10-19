@@ -20,8 +20,8 @@ def request_handler(request_func):
             print('Request received. Processing...')
             return request_func(), 200
         except Exception as e:
-            print('[{}]: {}'.format(request_func.__name__, e))
-            text = 'Tesseract error:\n{}\n\n{}'.format(e, traceback.format_exc())
+            print('[{}]:'.format(request_func.__name__))
+            text = 'Tesseract error:\n{}'.format(traceback.format_exc())
             data = {'command': 'sendMessage', 'chat': 'test', 'text': text}
             bot.queue.put(data)
             return {'response': -999, 'error': e.__str__()}, 500
@@ -29,7 +29,7 @@ def request_handler(request_func):
 
 
 @app.route('/')
-def hello_world():
+def index():
     return render_template('index.html')
 
 
@@ -49,7 +49,7 @@ def bot_notify():
         json_data = request.get_json()
         header = json_data['header'] or json_data['chat']
         text = json_data['text']
-        data = {'command': 'sendMessage', 'chat': header, 'text': text}
+        data = {'command': 'send_message', 'chat': header, 'text': text}
         bot.queue.put(data)
         return {'response': 1}
 
@@ -61,12 +61,12 @@ def bot_send_file():
         if 'multipart/form-data' in request.content_type:
             header = request.form.get('header', '')
             if header != '':
-                for f in request.files:
+                for f in request.files.values():
                     filename = secure_filename(f.filename)
-                    filepath = project_dir + '/' + os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    filepath = os.path.join(project_dir, app.config['UPLOAD_FOLDER'], filename)
                     f.save(filepath)
                     print(f, filename, filepath, sep='\n - ')
-                    data = {'command': 'sendDocument', 'chat': header, 'filepath': filepath}
+                    data = {'command': 'send_document', 'chat': header, 'filepath': filepath}
                     bot.queue.put(data)
                 return {'response': 1}
         return {'response': 0}
