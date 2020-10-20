@@ -10,7 +10,8 @@ DBFILE = PATH + 'database.sqlite'
 TABLES = {
     'queue': """CREATE TABLE queue (
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    DATA TEXT NOT NULL)""",
+    DATETIME DATE DEFAULT (datetime('now','localtime')),
+    MSGDATA TEXT NOT NULL)""",
 }
 
 
@@ -39,39 +40,32 @@ class SQLMaster:
         except sqlite3.OperationalError as e:
             return e
         else:
-            if 'insert' in cmd[:10].lower():
+            if cmd[:6].lower() != 'select':
                 self.conn.commit()
             return self.cur.fetchall()
 
     def load_queue(self):
-        rez = self.execute('SELECT data FROM queue')
+        rez = self.execute('SELECT MSGDATA FROM queue')
         return [eval(row[0]) for row in rez]
 
     def insert_queue(self, data):
-        data = str(data)
-        self.execute('INSERT INTO queue(data) VALUES (?)', data)
-        return self.execute('SELECT ID FROM queue WHERE data=(?) ORDER BY ID DESC LIMIT 1', data)[0][0]
+        self.execute('INSERT INTO queue(MSGDATA) VALUES (?)', data)
+        return self.execute('SELECT ID FROM queue WHERE MSGDATA=(?) ORDER BY ID DESC LIMIT 1', data)[0][0]
 
     def delete_queue(self, data):
-        data = str(data)
-        count = self.execute('select id from queue where data=(?)', data)
-        for i in range(len(count)):
-            self.execute('DELETE FROM queue WHERE data=(?)', data)
+        self.execute('DELETE FROM queue WHERE MSGDATA=(?)', data)
 
 
 def sql_load():
-    sql = SQLMaster()
-    return sql.load_queue()
+    return SQLMaster().load_queue()
 
 
 def sql_insert(data):
-    sql = SQLMaster()
-    return sql.insert_queue(data)
+    return SQLMaster().insert_queue(str(data))
 
 
 def sql_delete(data):
-    sql = SQLMaster()
-    sql.delete_queue(data)
+    SQLMaster().delete_queue(str(data))
 
 
 if __name__ == "__main__":

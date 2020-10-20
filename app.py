@@ -11,6 +11,8 @@ project_dir = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 bot = TesseractBot()
+bot.threading = False
+bot.start_queue_master()
 
 
 def request_handler(request_func):
@@ -23,7 +25,7 @@ def request_handler(request_func):
             print('[{}]:'.format(request_func.__name__))
             text = 'Tesseract error:\n{}'.format(traceback.format_exc())
             data = {'command': 'sendMessage', 'chat': 'test', 'text': text}
-            bot.queue.put(data)
+            bot.put_queue(data)
             return {'response': -999, 'error': e.__str__()}, 500
     return super_wrapper
 
@@ -50,7 +52,7 @@ def bot_notify():
         header = json_data['header'] or json_data['chat']
         text = json_data['text']
         data = {'command': 'send_message', 'chat': header, 'text': text}
-        bot.queue.put(data)
+        bot.put_queue(data)
         return {'response': 1}
 
 
@@ -67,7 +69,7 @@ def bot_send_file():
                     f.save(filepath)
                     print(f, filename, filepath, sep='\n - ')
                     data = {'command': 'send_document', 'chat': header, 'filepath': filepath}
-                    bot.queue.put(data)
+                    bot.put_queue(data)
                 return {'response': 1}
         return {'response': 0}
 

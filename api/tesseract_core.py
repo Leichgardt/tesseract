@@ -9,13 +9,6 @@ tesseract_path = os.path.dirname(os.path.abspath(__file__)) + '/'
 from api.config import Configer
 
 
-class MQBot(telegram.bot.Bot):
-    def __init__(self, *args, is_queued_def=True, mqueue=None, **kwargs):
-        super(MQBot, self).__init__(*args, **kwargs)
-        self._is_messages_queued_default = is_queued_def
-        self._msg_queue = mqueue or mq.MessageQueue()
-
-
 class TesseractCore:
     """Telegram Bot"""
     def __init__(self):
@@ -31,8 +24,6 @@ class TesseractCore:
         del cfg
 
         request = Request(con_pool_size=64)
-        # q = mq.MessageQueue(all_burst_limit=30, all_time_limit_ms=9000)
-        # self.bot = MQBot(token=self.token, request=request, mqueue=q)
         self.bot = telegram.bot.Bot(token=self.token, request=request)
         self.bot.getUpdates(timeout=5)
 
