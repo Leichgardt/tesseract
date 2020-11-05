@@ -20,6 +20,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 _check_folder()
 bot = TesseractBot()
 bot.threading = False
+bot.upload_dir = UPLOAD_FOLDER
 bot.start_queue_master()
 
 

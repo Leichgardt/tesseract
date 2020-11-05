@@ -1,12 +1,13 @@
 import os
 import sys
+from datetime import datetime
 from threading import Thread
 from time import sleep
 from telegram.error import TimedOut
 from multiprocessing import Queue
 
-tesseract_path = os.path.dirname(os.path.abspath(__file__)) + '/'
-sys.path.append(os.path.abspath(tesseract_path + '../'))
+project_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '../')
+sys.path.append(project_path)
 
 from api.tesseract_core import TesseractCore
 from api.sql_queuer import sql_load, sql_insert, sql_delete
@@ -14,9 +15,10 @@ from api.sql_queuer import sql_load, sql_insert, sql_delete
 
 class TesseractAPI(TesseractCore):
     """Telegram API"""
-    def __init__(self, threading=False):
+    def __init__(self, threading=False, upload_dir='upload'):
         super().__init__()
         self.threading = threading
+        self.upload_dir = upload_dir
         self.queue = Queue()
         self._load_sql()
 
@@ -27,9 +29,25 @@ class TesseractAPI(TesseractCore):
             self.queue.put(data)
 
     def start_queue_master(self):
-        t = Thread(target=self._queue_master)
-        t.daemon = True
-        t.start()
+        t1 = Thread(target=self._queue_master)
+        t1.daemon = True
+        t1.start()
+        t2 = Thread(target=self._upload_cleaner)
+        t2.daemon = True
+        t2.start()
+
+    def _upload_cleaner(self):
+        upload_path = os.path.join(project_path, self.upload_dir)
+        while True:
+            sleep(60)
+            if os.path.isdir(upload_path):
+                for filename in os.listdir(upload_path):
+                    if os.path.isfile(filename):
+                        ctime = os.path.getctime(os.path.join(upload_path, filename))
+                        cdate = datetime.fromtimestamp(ctime)
+                        diftime = datetime.now() - cdate
+                        if diftime.total_seconds() > 600.0:
+                            os.remove(os.path.join(upload_path, filename))
 
     def _queue_master(self):
         while True:
@@ -48,12 +66,9 @@ class TesseractAPI(TesseractCore):
         bot_cmd = eval('self.bot.' + data['command'])
         timeout = data.get('timeout', 10)
         chats = self.subs[data.get('chat')]
-        print(chats)
         save_chats = chats.copy()
-        print('chats:', save_chats)
 
         for chat_id in chats:
-            print('trying to handle:', data)
             try:
                 bot_data = {**_get_msg_content(data), 'chat_id': chat_id, 'timeout': timeout}
                 bot_cmd(**bot_data)
@@ -68,8 +83,6 @@ class TesseractAPI(TesseractCore):
                 err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__()}
                 self.put_queue(err_data)
         sql_delete(data)
-        if data['command'] == 'send_document' and os.path.exists(data['filepath']):
-            os.remove(data['filepath'])
 
     def put_queue(self, data):
         self.queue.put(data)
