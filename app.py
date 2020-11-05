@@ -6,11 +6,12 @@ from werkzeug.utils import secure_filename
 from api.tesseract_bot import TesseractBot
 
 UPLOAD_FOLDER = 'uploads'
-project_dir = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
+project_dir = os.path.abspath(os.path.dirname(os.path.abspath(__file__))) + '/'
 
 
 def _check_folder():
     if not os.path.isdir(project_dir + UPLOAD_FOLDER):
+        print('making upload dir')
         os.mkdir(project_dir + UPLOAD_FOLDER)
 
 
