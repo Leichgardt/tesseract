@@ -72,7 +72,7 @@ def bot_send_file():
         if 'multipart/form-data' in request.content_type:
             header = request.form.get('header', None) or request.form.get('chat', None)
             _check_chat(header)
-            if len(request.files.values()) == 0:
+            if len(list(request.files.values())) == 0:
                 raise ValueError('empty data')
             for f in request.files.values():
                 filename = secure_filename(f.filename)
@@ -87,7 +87,7 @@ def bot_send_file():
 
 def _check_chat(header):
     if header == '' or header is None or header not in bot.subs.keys():
-        raise KeyError(f'chat "{header}" doesn\'t exist')
+        raise KeyError(f'chat -{header}- does not exist')
 
 
 if __name__ == '__main__':
