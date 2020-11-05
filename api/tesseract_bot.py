@@ -19,6 +19,9 @@ class TesseractBot(TesseractAPI):
         start_handler = CommandHandler('start', self._start)
         dispatcher.add_handler(start_handler)
 
+        start_handler = CommandHandler('hello', self._start)
+        dispatcher.add_handler(start_handler)
+
         help_handler = CommandHandler('help', self._help)
         dispatcher.add_handler(help_handler)
 

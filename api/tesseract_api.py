@@ -34,21 +34,26 @@ class TesseractAPI(TesseractCore):
     def _queue_master(self):
         while True:
             data = self.queue.get()
-            print('queue: data was received')
+            print('queue data was received', data)
             if self.threading:
+                print('threading mode: 1')
                 thr = Thread(target=self._bot_master, args=(data,))
                 thr.daemon = True
                 thr.start()
             else:
+                print('threading mode: 0')
                 self._bot_master(data)
 
     def _bot_master(self, data):
         bot_cmd = eval('self.bot.' + data['command'])
         timeout = data.get('timeout', 10)
-        chats = data.get('chats', self.subs[data.get('chat', 'test')])
+        chats = self.subs[data.get('chat')]
+        print(chats)
         save_chats = chats.copy()
+        print('chats:', save_chats)
 
         for chat_id in chats:
+            print('trying to handle:', data)
             try:
                 bot_data = {**_get_msg_content(data), 'chat_id': chat_id, 'timeout': timeout}
                 bot_cmd(**bot_data)
