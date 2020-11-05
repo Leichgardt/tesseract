@@ -8,8 +8,15 @@ from api.tesseract_bot import TesseractBot
 UPLOAD_FOLDER = 'uploads'
 project_dir = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 
+
+def _check_folder():
+    if not os.path.isdir(project_dir + UPLOAD_FOLDER):
+        os.mkdir(project_dir + UPLOAD_FOLDER)
+
+
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+_check_folder()
 bot = TesseractBot()
 bot.threading = False
 bot.start_queue_master()
@@ -74,6 +81,7 @@ def bot_send_file():
             _check_chat(header)
             if len(list(request.files.values())) == 0:
                 raise ValueError('empty data')
+            _check_folder()
             for f in request.files.values():
                 filename = secure_filename(f.filename)
                 filepath = os.path.join(project_dir, app.config['UPLOAD_FOLDER'], filename)
