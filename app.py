@@ -8,16 +8,8 @@ from api.tesseract_bot import TesseractBot
 UPLOAD_FOLDER = 'uploads'
 project_dir = os.path.abspath(os.path.dirname(os.path.abspath(__file__))) + '/'
 
-
-def _check_folder():
-    if not os.path.isdir(project_dir + UPLOAD_FOLDER):
-        print('making upload dir')
-        os.mkdir(project_dir + UPLOAD_FOLDER)
-
-
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-_check_folder()
 bot = TesseractBot()
 bot.threading = False
 bot.upload_dir = UPLOAD_FOLDER
@@ -63,12 +55,14 @@ def get_list():
 def bot_notify():
     if request.method == 'POST':
         json_data = request.get_json()
-        header = json_data.get('header', None) or json_data.get('chat', None)
+        group = json_data.get('header', None) or json_data.get('chat', None)
+        chat_id = json_data.get('chat_id', None)
         text = json_data.get('text', '')
         if text == '':
             raise ValueError('empty text')
-        _check_chat(header)
-        data = {'command': 'send_message', 'chat': header, 'text': text}
+        parse_mode = json_data.get('parse_mode', None)
+        _check_chat(group, chat_id)
+        data = {'command': 'send_message', 'chat': group, 'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode}
         bot.put_queue(data)
         return {'response': 1}
 
@@ -79,8 +73,9 @@ def bot_notify():
 def bot_send_file():
     if request.method == 'POST':
         if 'multipart/form-data' in request.content_type:
-            header = request.form.get('header', None) or request.form.get('chat', None)
-            _check_chat(header)
+            group = request.form.get('header', None) or request.form.get('chat', None)
+            chat_id = request.form.get('chat_id', None)
+            _check_chat(group, chat_id)
             if len(list(request.files.values())) == 0:
                 raise ValueError('empty data')
             _check_folder()
@@ -89,16 +84,18 @@ def bot_send_file():
                 filepath = os.path.join(project_dir, app.config['UPLOAD_FOLDER'], filename)
                 f.save(filepath)
                 print(f, filename, filepath, sep='\n - ')
-                data = {'command': 'send_document', 'chat': header, 'filepath': filepath}
+                data = {'command': 'send_document', 'chat': group, 'chat_id': chat_id, 'filepath': filepath}
                 bot.put_queue(data)
             return {'response': 1}
         return {'response': 0}
 
 
-def _check_chat(header):
-    if header == '' or header is None or header not in bot.subs.keys():
-        raise KeyError(f'chat -{header}- does not exist')
+def _check_chat(header, chat_id):
+    if (header in ['', None] or header not in bot.subs.keys()) and chat_id in ['', None]:
+        raise KeyError(f'no groups -{header}- and no chat ids -{chat_id}- not specified')
 
 
-if __name__ == '__main__':
-    app.run()
+def _check_folder():
+    if not os.path.isdir(project_dir + UPLOAD_FOLDER):
+        print('Making upload directory')
+        os.mkdir(project_dir + UPLOAD_FOLDER)

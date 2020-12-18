@@ -65,7 +65,13 @@ class TesseractAPI(TesseractCore):
     def _bot_master(self, data):
         bot_cmd = eval('self.bot.' + data['command'])
         timeout = data.get('timeout', 10)
-        chats = self.subs[data.get('chat')]
+        group = data.get('chat')
+        cid = data.get('chat_id')
+        chats = []
+        if group in self.subs.keys():
+            chats = self.subs[group]
+        if cid is not None:
+            chats.append(cid)
         save_chats = chats.copy()
 
         for chat_id in chats:
@@ -78,6 +84,7 @@ class TesseractAPI(TesseractCore):
                 sql_delete(data)
                 data.update({'chats': save_chats, 'timeout': 60})
                 self.put_queue(data)
+                break
             except FileNotFoundError as e:
                 sql_delete(data)
                 err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__()}
@@ -91,6 +98,7 @@ class TesseractAPI(TesseractCore):
 
 def _get_msg_content(data):
     if data['command'] == 'send_message':
-        return {'text': data['text']}
+        parse_mode = data.get('parse_mode') if data.get('parse_mode') else 'MarkdownV2'
+        return {'text': data['text'], 'parse_mode': parse_mode}
     elif data['command'] == 'send_document':
         return {'document': open(data['filepath'], 'rb')}
