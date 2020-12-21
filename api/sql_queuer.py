@@ -50,7 +50,7 @@ class SQLMaster:
 
     def insert_queue(self, data):
         self.execute('INSERT INTO queue(MSGDATA) VALUES (?)', data)
-        return self.execute('SELECT ID FROM queue WHERE MSGDATA=(?) ORDER BY ID DESC LIMIT 1', data)[0][0]
+        return self.cur.lastrowid
 
     def delete_queue(self, data):
         self.execute('DELETE FROM queue WHERE MSGDATA=(?)', data)
