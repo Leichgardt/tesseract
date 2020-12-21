@@ -29,7 +29,7 @@ def request_handler(request_func):
         except Exception as e:
             print('[{}]:'.format(request_func.__name__))
             text = 'Tesseract error:\n{}'.format(traceback.format_exc())
-            data = {'command': 'sendMessage', 'chat': 'test', 'text': text}
+            data = {'command': 'send_message', 'chat': 'test', 'text': text}
             bot.put_queue(data)
             return {'response': -999, 'error': e.__str__()}, 500
     return super_wrapper
@@ -60,9 +60,11 @@ def bot_notify():
         text = json_data.get('text', '')
         if text == '':
             raise ValueError('empty text')
-        parse_mode = json_data.get('parse_mode', None)
+        parse_mode = json_data.get('parse_mode', 'MarkdownV2')
+        target_bot = json_data.get('bot', 'tesseract')
         _check_chat(group, chat_id)
-        data = {'command': 'send_message', 'chat': group, 'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode}
+        data = {'command': 'send_message', 'chat': group, 'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode,
+                'bot': target_bot}
         bot.put_queue(data)
         return {'response': 1}
 

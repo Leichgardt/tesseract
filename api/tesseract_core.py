@@ -1,7 +1,7 @@
 import json
 import os
 import telegram.bot
-from telegram.ext import Updater, messagequeue as mq
+from telegram.ext import Updater
 from telegram.utils.request import Request
 
 tesseract_path = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -20,11 +20,12 @@ class TesseractCore:
             self._load_subs()
 
         cfg = Configer().upload(module='Tesseract')
-        self.token = cfg('token', '')
+        self.token = {'tesseract': cfg('token-tesseract', ''),
+                      'IronnetAdminBot': cfg('token-ironnetadminbot', '')}
         del cfg
 
         request = Request(con_pool_size=64)
-        self.bot = telegram.bot.Bot(token=self.token, request=request)
+        self.bot = telegram.bot.Bot(token=self.token['tesseract'], request=request)
         self.bot.getUpdates(timeout=5)
 
         self.updater = Updater(bot=self.bot, use_context=True)

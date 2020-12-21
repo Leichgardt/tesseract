@@ -13,7 +13,7 @@ class TesseractBot(TesseractAPI):
     def __init__(self):
         super().__init__()
 
-        self.updater = Updater(token=self.token, use_context=True)
+        self.updater = Updater(token=self.token['tesseract'], use_context=True)
         dispatcher = self.updater.dispatcher
 
         start_handler = CommandHandler('start', self._start)
