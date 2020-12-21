@@ -60,6 +60,7 @@ def bot_notify():
         text = json_data.get('text', '')
         if text == '':
             raise ValueError('empty text')
+        text = text.replace('+', f'\+')
         parse_mode = json_data.get('parse_mode', 'MarkdownV2')
         target_bot = json_data.get('bot', 'tesseract')
         _check_chat(group, chat_id)
