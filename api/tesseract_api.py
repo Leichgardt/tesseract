@@ -75,15 +75,16 @@ class TesseractAPI(TesseractCore):
         if cid is not None:
             chats.append(cid)
         save_chats = chats.copy()
-        if data.get('bot') == 'IronnetAdminBot':
+        if data.get('bot') != 'tesseract':
             cmd = 'sendMessage?disable_web_page_preview=1&parse_mode={}'.format(data['parse_mode'])
             cmd += '&chat_id={}&text={}'
             for chat_id in chats:
-                url = TELEGRAM_URL.format(self.token['IronnetAdminBot'], cmd.format(chat_id, data['text']))
+                url = TELEGRAM_URL.format(self.token[data.get('bot')], cmd.format(chat_id, data['text']))
                 res = requests.post(url)
                 if not res.ok:
                     sql_delete(data)
-                    raise ConnectionError('Tesseract: sending msg from "IronnetAdminBot" failed. Data:\n%s' % str(data))
+                    msg = 'Tesseract: sending msg from bot "%s" failed. Data:\n%s' % (data.get('bot'), str(data))
+                    raise ConnectionError(msg)
             sql_delete(data)
         else:
             bot_cmd = eval('self.bot.' + data['command'])
@@ -107,7 +108,8 @@ class TesseractAPI(TesseractCore):
             sql_delete(data)
 
     def put_queue(self, data):
-        if data.get('bot') == 'IronnetAdminBot' and data.get('command') not in ['send_message']:
+        data.update({'bot': data.get('bot', 'tesseract')})
+        if data.get('bot') != 'tesseract' and data.get('command') not in ['send_message']:
             raise ValueError('Bot "{}" doesn\'t support command "{}"'.format(data.get('bot'), data.get('command')))
         self.queue.put(data)
         sql_insert(data)
