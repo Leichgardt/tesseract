@@ -101,10 +101,11 @@ class TesseractAPI(TesseractCore):
                     data.update({'chats': save_chats, 'timeout': 60})
                     self.put_queue(data)
                     break
-                except FileNotFoundError as e:
+                except Exception as e:
                     sql_delete(data)
-                    err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__()}
+                    err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__() + f'\ndata: {data}'}
                     self.put_queue(err_data)
+                    break
             sql_delete(data)
 
     def put_queue(self, data):
@@ -117,7 +118,7 @@ class TesseractAPI(TesseractCore):
 
 
 def _get_msg_content(data):
-    if data['command'] == 'send_message':
-        return {'text': data['text'], 'parse_mode': data['parse_mode']}
-    elif data['command'] == 'send_document':
+    if data['command'] == 'send_document':
         return {'document': open(data['filepath'], 'rb')}
+    else:
+        return data
