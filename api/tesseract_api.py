@@ -56,14 +56,12 @@ class TesseractAPI(TesseractCore):
     def _queue_master(self):
         while True:
             data = self.queue.get()
-            print('queue data was received', data)
+            print('queue data was received:', data)
             if self.threading:
-                print('threading mode: 1')
                 thr = Thread(target=self._bot_master, args=(data,))
                 thr.daemon = True
                 thr.start()
             else:
-                print('threading mode: 0')
                 self._bot_master(data)
 
     def _bot_master(self, data):
@@ -103,7 +101,8 @@ class TesseractAPI(TesseractCore):
                     break
                 except Exception as e:
                     sql_delete(data)
-                    err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__() + f'\ndata: {data}'}
+                    err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__() + f'\ndata:\n{data}',
+                                'disable_web_page_preview': True}
                     self.put_queue(err_data)
                     break
             sql_delete(data)
