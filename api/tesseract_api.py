@@ -1,9 +1,10 @@
 import os
 import sys
 from datetime import datetime
+import requests
 from threading import Thread
 from time import sleep
-from telegram.error import TimedOut, NetworkError
+from telegram.error import TimedOut
 from multiprocessing import Queue
 
 project_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '../')
@@ -11,6 +12,9 @@ sys.path.append(project_path)
 
 from api.tesseract_core import TesseractCore
 from api.sql_queuer import sql_load, sql_insert, sql_delete
+
+
+TELEGRAM_URL = 'https://api.telegram.org/bot{}/{}'
 
 
 class TesseractAPI(TesseractCore):
@@ -52,55 +56,68 @@ class TesseractAPI(TesseractCore):
     def _queue_master(self):
         while True:
             data = self.queue.get()
-            print('queue data was received', data)
+            print('queue data was received:', data)
             if self.threading:
-                print('threading mode: 1')
                 thr = Thread(target=self._bot_master, args=(data,))
                 thr.daemon = True
                 thr.start()
             else:
-                print('threading mode: 0')
                 self._bot_master(data)
 
     def _bot_master(self, data):
-        bot_cmd = eval('self.bot.' + data['command'])
-        timeout = data.get('timeout', 10)
-        chats = self.subs[data.get('chat')]
+        group = data.get('chat')
+        cid = data.get('chat_id')
+        chats = []
+        if group in self.subs.keys():
+            chats = self.subs[group]
+        if cid is not None:
+            chats.append(cid)
         save_chats = chats.copy()
+        if data.get('bot') != 'tesseract':
+            cmd = 'sendMessage?disable_web_page_preview=1&parse_mode={}'.format(data['parse_mode'])
+            cmd += '&chat_id={}&text={}'
+            for chat_id in chats:
+                url = TELEGRAM_URL.format(self.token[data.get('bot')], cmd.format(chat_id, data['text']))
+                res = requests.post(url)
+                if not res.ok:
+                    sql_delete(data)
+                    msg = 'Tesseract: sending msg from bot "%s" failed. Data:\n%s' % (data.get('bot'), str(data))
+                    raise ConnectionError(msg)
+            sql_delete(data)
+        else:
+            bot_cmd = eval('self.bot.' + data['command'])
+            timeout = data.get('timeout', 10)
 
-        for chat_id in chats:
-            try:
-                bot_data = {**_get_msg_content(data), 'chat_id': chat_id, 'timeout': timeout}
-                bot_cmd(**bot_data)
-                save_chats.remove(chat_id)
-            except TimedOut:
-                self.logger.warning(f'Timed out on {data}')
-                self._master_handler(data, timeout // 5, save_chats)
-            except NetworkError:
-                self.logger.warning(f'Network downed on {data}')
-                self._master_handler(data, timeout, save_chats)
-            except FileNotFoundError as e:
-                sql_delete(data)
-                err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__()}
-                self.put_queue(err_data)
-            except Exception as e:
-                self.logger.error(e)
-                self._master_handler(data, timeout, save_chats)
-        sql_delete(data)
-
-    def _master_handler(self, data, timeout, save_chats):
-        sql_delete(data)
-        sleep(timeout)
-        data.update({'chats': save_chats, 'timeout': 60})
-        self.put_queue(data)
+            for chat_id in chats:
+                try:
+                    bot_data = {**_get_msg_content(data), 'chat_id': chat_id, 'timeout': timeout}
+                    bot_cmd(**bot_data)
+                    save_chats.remove(chat_id)
+                except TimedOut:
+                    sleep(timeout // 5)
+                    sql_delete(data)
+                    data.update({'chats': save_chats, 'timeout': 60})
+                    self.put_queue(data)
+                    break
+                except Exception as e:
+                    sql_delete(data)
+                    err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__() + f'\ndata:\n{data}',
+                                'disable_web_page_preview': True}
+                    self.put_queue(err_data)
+                    break
+            sql_delete(data)
 
     def put_queue(self, data):
+        data.update({'bot': data.get('bot', 'tesseract')})
+        if data.get('bot') != 'tesseract' and data.get('command') not in ['send_message']:
+            raise ValueError('Bot "{}" doesn\'t support command "{}"'.format(data.get('bot'), data.get('command')))
         self.queue.put(data)
         sql_insert(data)
+        return 1
 
 
 def _get_msg_content(data):
-    if data['command'] == 'send_message':
-        return {'text': data['text']}
-    elif data['command'] == 'send_document':
+    if data['command'] == 'send_document':
         return {'document': open(data['filepath'], 'rb')}
+    else:
+        return data
