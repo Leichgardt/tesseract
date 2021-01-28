@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 from threading import Thread
 from time import sleep
-from telegram.error import TimedOut
+from telegram.error import TimedOut, NetworkError
 from multiprocessing import Queue
 
 project_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)) + '../')
@@ -74,15 +74,25 @@ class TesseractAPI(TesseractCore):
                 bot_cmd(**bot_data)
                 save_chats.remove(chat_id)
             except TimedOut:
-                sleep(timeout // 5)
-                sql_delete(data)
-                data.update({'chats': save_chats, 'timeout': 60})
-                self.put_queue(data)
+                self.logger.warning(f'Timed out on {data}')
+                self._master_handler(data, timeout // 5, save_chats)
+            except NetworkError:
+                self.logger.warning(f'Network downed on {data}')
+                self._master_handler(data, timeout, save_chats)
             except FileNotFoundError as e:
                 sql_delete(data)
                 err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__()}
                 self.put_queue(err_data)
+            except Exception as e:
+                self.logger.error(e)
+                self._master_handler(data, timeout, save_chats)
         sql_delete(data)
+
+    def _master_handler(self, data, timeout, save_chats):
+        sql_delete(data)
+        sleep(timeout)
+        data.update({'chats': save_chats, 'timeout': 60})
+        self.put_queue(data)
 
     def put_queue(self, data):
         self.queue.put(data)

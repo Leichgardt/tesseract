@@ -1,7 +1,8 @@
 import json
 import os
+import logging
 import telegram.bot
-from telegram.ext import Updater, messagequeue as mq
+from telegram.ext import Updater
 from telegram.utils.request import Request
 
 tesseract_path = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -12,6 +13,16 @@ from api.config import Configer
 class TesseractCore:
     """Telegram Bot"""
     def __init__(self):
+        l_format = logging.Formatter('[%(asctime)s] %(message)s\n')
+        s_handler = logging.StreamHandler()
+        s_handler.setFormatter(l_format)
+        f_handler = logging.FileHandler('/var/log/iron/tesseract.log')
+        f_handler.setLevel(logging.WARNING)
+        f_handler.setFormatter(l_format)
+        self.logger = logging.getLogger('tesseract')
+        self.logger.setLevel(logging.WARNING)
+        self.logger.addHandler(s_handler)
+        self.logger.addHandler(f_handler)
         self.last_ari_msg = 0
         self.last_rev_msg = 0
         self.subs = {'all': []}
