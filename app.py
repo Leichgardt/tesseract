@@ -71,13 +71,17 @@ def index():
                            about=about,
                            version='0.4.0',
                            domain=main_domain,
-                           main_url=host_domain + '/tesseract')
+                           main_url=host_domain + '/tesseract',
+                           history=bot.get_history(),
+                           groups=bot.groups_output(),
+                           subs=bot.subs_output())
 
 
 @app.route('/api/get_list', methods=['GET', 'POST'])
+@app.route('/api/get_data', methods=['GET', 'POST'])
 def get_list():
     try:
-        return {'response': 1, 'subs': bot.subs_output(), 'groups': bot.groups_output()}
+        return {'response': 1, 'subs': bot.subs_output(), 'groups': bot.groups_output(), 'history': bot.get_history()}
     except Exception as e:
         app.logger.error('[get_list]:', e)
         return {'response': 1, 'result': [-1]}
