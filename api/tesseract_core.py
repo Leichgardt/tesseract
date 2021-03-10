@@ -4,25 +4,15 @@ import logging
 import telegram.bot
 from telegram.ext import Updater
 from telegram.utils.request import Request
+from api.configer import Configer
 
 tesseract_path = os.path.dirname(os.path.abspath(__file__)) + '/'
-
-from api.config import Configer
 
 
 class TesseractCore:
     """Telegram Bot"""
-    def __init__(self):
-        l_format = logging.Formatter('[%(asctime)s] %(message)s\n')
-        s_handler = logging.StreamHandler()
-        s_handler.setFormatter(l_format)
-        f_handler = logging.FileHandler('/var/log/iron/tesseract.log')
-        f_handler.setLevel(logging.WARNING)
-        f_handler.setFormatter(l_format)
-        self.logger = logging.getLogger('tesseract')
-        self.logger.setLevel(logging.WARNING)
-        self.logger.addHandler(s_handler)
-        self.logger.addHandler(f_handler)
+    def __init__(self, logger=None):
+        self.logger = logger or logging.getLogger('tesseract')
         self.last_ari_msg = 0
         self.last_rev_msg = 0
         self.subs = {'all': []}
@@ -38,7 +28,6 @@ class TesseractCore:
         request = Request(con_pool_size=64)
         self.bot = telegram.bot.Bot(token=self.token['tesseract'], request=request)
         self.bot.getUpdates(timeout=5)
-
         self.updater = Updater(bot=self.bot, use_context=True)
 
     def subs_output(self):

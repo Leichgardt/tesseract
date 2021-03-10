@@ -10,8 +10,8 @@ from api.tesseract_api import TesseractAPI
 
 class TesseractBot(TesseractAPI):
     """Telegram Bot"""
-    def __init__(self):
-        super().__init__()
+    def __init__(self, logger=None):
+        super().__init__(logger=logger)
 
         self.updater = Updater(token=self.token['tesseract'], use_context=True)
         dispatcher = self.updater.dispatcher
@@ -78,7 +78,7 @@ class TesseractBot(TesseractAPI):
             context.bot.send_message(chat_id=chat_id, text=text, timeout=60)
         else:
             context.bot.send_message(chat_id=chat_id, text="You are already a subscriber.\nYou can choose new Group\n/groups", timeout=60)
-        print('Subscribed', chat_id)
+        self.logger.info('Subscribed', chat_id)
 
     def _unsubscribe(self, update, context):
         chat_id = str(update.effective_chat.id)
@@ -92,12 +92,12 @@ class TesseractBot(TesseractAPI):
             context.bot.send_message(chat_id=chat_id, text="Unsubscribed.", timeout=60)
         else:
             context.bot.send_message(chat_id=chat_id, text="You are not a subscriber.", timeout=60)
-        print('Unsubscribed', chat_id)
+        self.logger.info('Unsubscribed', chat_id)
 
     def _set_group(self, update, context):
         chat_id = str(update.effective_chat.id)
         group = update.message.text.replace('/set_group', '').strip()
-        print('leave', chat_id, f"#{group}#")
+        self.logger.info('leave', chat_id, f"#{group}#")
 
         if group == '':
             context.bot.send_message(chat_id=chat_id, text="Run command with /set_group NewGroup", timeout=60)
@@ -119,7 +119,7 @@ class TesseractBot(TesseractAPI):
     def _leave_group(self, update, context):
         chat_id = str(update.effective_chat.id)
         group = update.message.text.replace('/leave_group', '').strip()
-        print('leave', chat_id, f"#{group}#")
+        self.logger.info('leave', chat_id, f"#{group}#")
 
         if group == '':
             context.bot.send_message(chat_id=chat_id, text="Run command with /leave_group NewGroup", timeout=60)

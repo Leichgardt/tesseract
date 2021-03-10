@@ -19,8 +19,8 @@ TELEGRAM_URL = 'https://api.telegram.org/bot{}/{}'
 
 class TesseractAPI(TesseractCore):
     """Telegram API"""
-    def __init__(self, threading=False, upload_dir='upload'):
-        super().__init__()
+    def __init__(self, logger=None, threading=False, upload_dir='upload'):
+        super().__init__(logger=logger)
         self.threading = threading
         self.upload_dir = upload_dir
         self.queue = Queue()
@@ -28,7 +28,7 @@ class TesseractAPI(TesseractCore):
 
     def _load_sql(self):
         dataset = sql_load()
-        print('saved queue size:', len(dataset))
+        self.logger.info('Saved queue size:', len(dataset))
         for data in dataset:
             self.queue.put(data)
 
@@ -56,7 +56,7 @@ class TesseractAPI(TesseractCore):
     def _queue_master(self):
         while True:
             data = self.queue.get()
-            print('queue data was received:', data)
+            self.logger.info('queue data was received:', data)
             if self.threading:
                 thr = Thread(target=self._bot_master, args=(data,))
                 thr.daemon = True
@@ -81,8 +81,9 @@ class TesseractAPI(TesseractCore):
                 res = requests.post(url)
                 if not res.ok:
                     sql_delete(data)
-                    msg = 'Tesseract: sending msg from bot "%s" failed. Data:\n%s' % (data.get('bot'), str(data))
-                    raise ConnectionError(msg)
+                    msg = 'Sending msg from bot "%s" failed. Data:\n%s' % (data.get('bot'), str(data))
+                    self.logger.warning(msg)
+                    break
             sql_delete(data)
         else:
             bot_cmd = eval('self.bot.' + data['command'])
@@ -121,7 +122,8 @@ class TesseractAPI(TesseractCore):
     def put_queue(self, data):
         data.update({'bot': data.get('bot', 'tesseract')})
         if data.get('bot') != 'tesseract' and data.get('command') not in ['send_message']:
-            raise ValueError('Bot "{}" doesn\'t support command "{}"'.format(data.get('bot'), data.get('command')))
+            self.logger.warning('Bot "{}" doesn\'t support command "{}"'.format(data.get('bot'), data.get('command')))
+            return 0
         self.queue.put(data)
         sql_insert(data)
         return 1

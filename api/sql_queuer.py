@@ -15,8 +15,14 @@ TABLES = {
 }
 
 
+def _init_logger(name):
+    import logging
+    return logging.getLogger(name)
+
+
 class SQLMaster:
-    def __init__(self, debug=False):
+    def __init__(self, logger=None, debug=False):
+        self.logger = logger or _init_logger('SQL-logger')
         self.conn = sqlite3.connect(DBFILE)
         self.cur = self.conn.cursor()
         self.debug = debug
@@ -27,22 +33,22 @@ class SQLMaster:
         sql_tables = [table[0] for table in sql_tables]
         for table, create_cmd in TABLES.items():
             if table not in sql_tables:
-                if self.debug:
-                    print('SQL: Creating table: "%s"' % table)
+                self.logger.debug('SQL: Creating table: "%s"' % table)
                 try:
                     self.execute(create_cmd)
                 except sqlite3.OperationalError:
-                    print('Table "%s" creation failed.' % table)
+                    self.logger.error('Table "%s" creation failed.' % table)
 
     def execute(self, cmd, *args):
         try:
             self.cur.execute(cmd, args)
         except sqlite3.OperationalError as e:
             return e
-        else:
-            if cmd[:6].lower() != 'select':
-                self.conn.commit()
-            return self.cur.fetchall()
+        try:
+            self.conn.commit()
+        except Exception as e:
+            self.logger.fatal(e)
+        return self.cur.fetchall()
 
     def load_queue(self):
         rez = self.execute('SELECT MSGDATA FROM queue')

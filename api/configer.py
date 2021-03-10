@@ -86,9 +86,3 @@ class Configer:
                         item[1] = item[1].split(',')
                     self.config_list.update({item[0].lower(): item[1]})
         return self
-
-
-if __name__ == "__main__":
-    cfg = Configer()
-    cfg.upload(module='Lanbilling')
-    [print(item) for item in cfg.config_list.items()]
