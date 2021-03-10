@@ -27,14 +27,18 @@ html {
     <div class="row">
         <div class="col-6">
             <pre>
-                <div id="list"></div>
+                <div id="list">{{ subs }}</div>
             </pre>
         </div>
         <div class="col-6">
             <div>
                 <br/>List:
             </div>
-            <div id="groups"></div>
+            <div id="groups">
+            	{% for group in groups %}
+            	 - {{ group }}<br/>
+            	{% endfor %}
+            </div>
         </div>
     </div>
     <div class="row">
