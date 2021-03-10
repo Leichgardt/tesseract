@@ -1,18 +1,19 @@
 document.addEventListener('DOMContentLoaded', function (event) {
     let list = document.getElementById('list');
+    let history = document.getElementById('history');
     let groups = document.getElementById('groups');
-    refresh_list();
-    setInterval(refresh_list, 60000);
+    setInterval(refresh_data_request, 60000);
 
-    function refresh_list() {
-        fetch('api/get_list', {
+    function refresh_data_request() {
+        fetch('api/get_data', {
             method: 'GET',
         })
             .then(response => response.json())
             .then(data => {
-                list.innerText = data['subs'];
+                list.innerText = data.subs;
+                history.innerText = data.history;
                 groups.innerHTML = '';
-                data['groups'].forEach(function (item) {
+                data.groups.forEach(function (item) {
                     groups.innerHTML += ' - ' + item + '<br>';
                 });
             })

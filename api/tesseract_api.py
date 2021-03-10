@@ -25,10 +25,11 @@ class TesseractAPI(TesseractCore):
         self.upload_dir = upload_dir
         self.queue = Queue()
         self._load_sql()
+        self._historic = Historic()
 
     def _load_sql(self):
         dataset = sql_load()
-        self.logger.info('Saved queue size:', len(dataset))
+        self.logger.info(f'Saved queue size: {len(dataset)}')
         for data in dataset:
             self.queue.put(data)
 
@@ -56,7 +57,7 @@ class TesseractAPI(TesseractCore):
     def _queue_master(self):
         while True:
             data = self.queue.get()
-            self.logger.info('queue data was received:', data)
+            self.logger.info(f'queue data was received: {data}')
             if self.threading:
                 thr = Thread(target=self._bot_master, args=(data,))
                 thr.daemon = True
@@ -111,6 +112,8 @@ class TesseractAPI(TesseractCore):
                     err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__()}
                     self.put_queue(err_data)
                     break
+                else:
+                    self._historic.write(data['command'], f'{chat_id}', bot_data.get('text', bot_data.get('document', '')))
             sql_delete(data)
 
     def _master_handler(self, data, timeout, save_chats):
@@ -128,9 +131,40 @@ class TesseractAPI(TesseractCore):
         sql_insert(data)
         return 1
 
+    def get_history(self):
+        return self._historic.read()
+
 
 def _get_msg_content(data):
     if data['command'] == 'send_document':
         return {'document': open(data['filepath'], 'rb')}
     else:
         return data
+
+
+class Historic:
+    def __init__(self):
+        self.filepath = os.path.abspath(os.path.dirname(os.path.abspath(__file__))) + '/history.txt'
+
+    def write(self, cmd, chat, data):
+        date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        new = '{0} | {1:15.15} | {2:>15.15} | {3}'.format(date, cmd, str(chat)[-10:], data)
+        lines = []
+        if os.path.exists(self.filepath):
+            with open(self.filepath, 'r') as f:
+                lines = f.readlines()
+        lines = [line.replace('\n', '') for line in lines if line or line != '\n']
+        lines.reverse()
+        lines = lines[-19:]
+        lines.append(new)
+        lines.reverse()
+        lines = [line + '\n' for line in lines]
+        with open(self.filepath, 'w') as f:
+            f.writelines(lines)
+
+    def read(self):
+        lines = []
+        if os.path.exists(self.filepath):
+            with open(self.filepath, 'r') as f:
+                lines = f.readlines()
+        return ''.join(lines)

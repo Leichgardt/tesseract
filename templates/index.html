@@ -20,30 +20,28 @@ html {
 </style>
 {% endblock %}
 {% block content %}
-<div class="container pb-3">
+<div class="container">
     <div class="justify-content-center text-center p-3">
         <h1>Tesseract Telegram Bot</h1>
     </div>
-    <div class="text-body">
-        <p>Welcome</p>
-        <p>That is <a href="http://t.me/tesseract_ibot">@tesseract_ibot</a> for notify about network cases</p>
-        <p>
-            To get access to telegram notify you should send POST request at
-            <br><b>cup.ironnet.info/tesseract/api/bot_notify</b>
-            <br>format: requests.post(json={'header': groupname, 'text': sample text}, verify=False)
-        </p>
-        <p>
-            Also you can send file
-            <br><b>cup.ironnet.info/tesseract/api/bot_send_file</b>
-            <br>format: requests.post(url, data={'header': groupname}, files={'file': open(filename, 'rb')}, verify=False)
-        </p>
-        <div>
-            List:
+    <div class="row">
+        <div class="col-6">
+            <pre>
+                <div id="list"></div>
+            </pre>
         </div>
-        <div id="groups"></div>
-        <pre>
-            <div id="list"></div>
-        </pre>
+        <div class="col-6">
+            <div>
+                <br/>List:
+            </div>
+            <div id="groups"></div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 text-center">Message history</div>
+        <div class="col-12" style="border: 1px solid #cfcece; white-space: pre-wrap">
+<code id="history" style="color: black;">{{ history }}</code>
+        </div>
     </div>
 </div>
 {% endblock %}

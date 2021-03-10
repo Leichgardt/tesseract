@@ -78,7 +78,7 @@ class TesseractBot(TesseractAPI):
             context.bot.send_message(chat_id=chat_id, text=text, timeout=60)
         else:
             context.bot.send_message(chat_id=chat_id, text="You are already a subscriber.\nYou can choose new Group\n/groups", timeout=60)
-        self.logger.info('Subscribed', chat_id)
+        self.logger.info(f'Subscribed {chat_id}')
 
     def _unsubscribe(self, update, context):
         chat_id = str(update.effective_chat.id)
@@ -92,12 +92,12 @@ class TesseractBot(TesseractAPI):
             context.bot.send_message(chat_id=chat_id, text="Unsubscribed.", timeout=60)
         else:
             context.bot.send_message(chat_id=chat_id, text="You are not a subscriber.", timeout=60)
-        self.logger.info('Unsubscribed', chat_id)
+        self.logger.info(f'Unsubscribed {chat_id}')
 
     def _set_group(self, update, context):
         chat_id = str(update.effective_chat.id)
         group = update.message.text.replace('/set_group', '').strip()
-        self.logger.info('leave', chat_id, f"#{group}#")
+        self.logger.info(f'Set #{group}# for {chat_id}')
 
         if group == '':
             context.bot.send_message(chat_id=chat_id, text="Run command with /set_group NewGroup", timeout=60)
@@ -119,7 +119,7 @@ class TesseractBot(TesseractAPI):
     def _leave_group(self, update, context):
         chat_id = str(update.effective_chat.id)
         group = update.message.text.replace('/leave_group', '').strip()
-        self.logger.info('leave', chat_id, f"#{group}#")
+        self.logger.info(f'Leave {chat_id} from #{group}#')
 
         if group == '':
             context.bot.send_message(chat_id=chat_id, text="Run command with /leave_group NewGroup", timeout=60)
