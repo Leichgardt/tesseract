@@ -53,7 +53,7 @@ def request_handler(request_func):
         except ValueError as e:
             return {'response': 0, 'error': e.__str__()}, 400
         except Exception as e:
-            app.logger.error('Exception:', traceback.format_exc())
+            app.logger.error(f'Exception: {traceback.format_exc()}')
             return {'response': -999, 'error': e.__str__()}, 500
     return super_wrapper
 
@@ -83,7 +83,7 @@ def get_list():
     try:
         return {'response': 1, 'subs': bot.subs_output(), 'groups': bot.groups_output(), 'history': bot.get_history()}
     except Exception as e:
-        app.logger.error('[get_list]:', e)
+        app.logger.error(f'[get_list]: {e}')
         return {'response': 1, 'result': [-1]}
 
 
@@ -133,7 +133,7 @@ def bot_send_file():
             filename = secure_filename(f.filename)
             filepath = os.path.join(project_dir, app.config['UPLOAD_FOLDER'], filename)
             f.save(filepath)
-            app.logger.info(f, filename, filepath, sep='\n - ')
+            app.logger.info(f'{f}\n - {filename}\n - {filepath}')
             data = {'command': 'send_document', 'chat': group, 'chat_id': chat_id, 'filepath': filepath}
             bot.put_queue(data)
         return {'response': 1}

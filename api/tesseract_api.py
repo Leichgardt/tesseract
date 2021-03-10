@@ -73,6 +73,8 @@ class TesseractAPI(TesseractCore):
             chats = self.subs[group]
         if cid is not None:
             chats.append(cid)
+        if not chats:
+            return None
         save_chats = chats.copy()
         if data.get('bot') != 'tesseract':
             cmd = 'sendMessage?disable_web_page_preview=1&parse_mode={}'.format(data['parse_mode'])
@@ -89,10 +91,11 @@ class TesseractAPI(TesseractCore):
         else:
             bot_cmd = eval('self.bot.' + data['command'])
             timeout = data.get('timeout', 10)
-
+            bot_data = {**_get_msg_content(data), 'timeout': timeout}
+            self._historic.write(data['command'], f'{group or cid}', bot_data.get('document', bot_data.get('text', '')))
             for chat_id in chats:
                 try:
-                    bot_data = {**_get_msg_content(data), 'chat_id': chat_id, 'timeout': timeout}
+                    bot_data.update({'chat_id': chat_id, 'timeout': timeout})
                     bot_cmd(**bot_data)
                     save_chats.remove(chat_id)
                 except TimedOut:
@@ -112,8 +115,6 @@ class TesseractAPI(TesseractCore):
                     err_data = {'command': 'send_message', 'chat': 'test', 'text': e.__str__()}
                     self.put_queue(err_data)
                     break
-                else:
-                    self._historic.write(data['command'], f'{chat_id}', bot_data.get('text', bot_data.get('document', '')))
             sql_delete(data)
 
     def _master_handler(self, data, timeout, save_chats):
